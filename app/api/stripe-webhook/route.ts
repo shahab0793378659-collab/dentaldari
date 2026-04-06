@@ -1,8 +1,10 @@
+// app/api/stripe-webhook/route.ts
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { Resend } from "resend";
 import { google } from "googleapis";
 import { v4 as uuidv4 } from "uuid";
+import { isSlotBooked } from "@/lib/calendar";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -35,10 +37,10 @@ async function createCalendarEvent({
   time: string;
 }) {
   const auth = new google.auth.JWT({
-  email: process.env.GOOGLE_CLIENT_EMAIL,
-  key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-  scopes: ["https://www.googleapis.com/auth/calendar"],
-});
+    email: process.env.GOOGLE_CLIENT_EMAIL,
+    key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    scopes: ["https://www.googleapis.com/auth/calendar"],
+  });
 
   const calendar = google.calendar({ version: "v3", auth });
 
@@ -95,7 +97,10 @@ export async function POST(req: Request) {
   const signature = req.headers.get("stripe-signature");
 
   if (!signature) {
-    return NextResponse.json({ error: "Missing stripe signature" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing stripe signature" },
+      { status: 400 }
+    );
   }
 
   let event: Stripe.Event;
@@ -122,6 +127,42 @@ export async function POST(req: Request) {
 
       if (!fullName || !email || !date || !time) {
         console.error("Missing metadata in Stripe session");
+        return NextResponse.json({ received: true });
+      }
+
+      const alreadyBooked = await isSlotBooked(date, time);
+
+      if (alreadyBooked) {
+        await resend.emails.send({
+          from: "Dentaldari <onboarding@resend.dev>",
+          to: ["dentaldari.com@gmail.com"],
+          subject: "VIKTIGT: möjlig dubbelbokning efter betalning",
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.8;">
+              <h2>Manuell kontroll krävs</h2>
+              <p>En betalning kom in för en tid som redan verkar vara bokad.</p>
+              <p><strong>Namn:</strong> ${fullName}</p>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Datum:</strong> ${date}</p>
+              <p><strong>Tid:</strong> ${time}</p>
+              <p>Kontrollera Stripe och kalendern direkt.</p>
+            </div>
+          `,
+        });
+
+        await resend.emails.send({
+          from: "Dentaldari <onboarding@resend.dev>",
+          to: [email],
+          subject: "Din bokning granskas manuellt - Dentaldari",
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.8;">
+              <h2>Vi granskar din bokning manuellt</h2>
+              <p>Vi har mottagit din betalning och granskar just nu din bokning manuellt för att säkerställa rätt tid.</p>
+              <p>Du får snart ett uppföljande mejl från oss.</p>
+            </div>
+          `,
+        });
+
         return NextResponse.json({ received: true });
       }
 

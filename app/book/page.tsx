@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 function formatDateKey(date: Date) {
   const year = date.getFullYear();
@@ -125,17 +125,6 @@ function generateTimeSlots(selectedDate: Date | null) {
 
   const slots: string[] = [];
 
-  const stockholmNow = getStockholmNowParts();
-
-  const selectedYear = selectedDate.getFullYear();
-  const selectedMonth = selectedDate.getMonth() + 1;
-  const selectedDay = selectedDate.getDate();
-
-  const isTodayInStockholm =
-    selectedYear === stockholmNow.year &&
-    selectedMonth === stockholmNow.month &&
-    selectedDay === stockholmNow.day;
-
   let currentHour = startHour;
   let currentMinute = 0;
 
@@ -146,22 +135,18 @@ function generateTimeSlots(selectedDate: Date | null) {
 
     if (slotEndMinutes > endLimitMinutes) break;
 
-    const nowMinutes = stockholmNow.hour * 60 + stockholmNow.minute;
+    const start = `${String(currentHour).padStart(2, "0")}:${String(
+      currentMinute
+    ).padStart(2, "0")}`;
 
-    if (!isTodayInStockholm || slotStartMinutes > nowMinutes) {
-      const start = `${String(currentHour).padStart(2, "0")}:${String(
-        currentMinute
-      ).padStart(2, "0")}`;
+    const endHourPart = Math.floor(slotEndMinutes / 60);
+    const endMinutePart = slotEndMinutes % 60;
 
-      const endHourPart = Math.floor(slotEndMinutes / 60);
-      const endMinutePart = slotEndMinutes % 60;
+    const end = `${String(endHourPart).padStart(2, "0")}:${String(
+      endMinutePart
+    ).padStart(2, "0")}`;
 
-      const end = `${String(endHourPart).padStart(2, "0")}:${String(
-        endMinutePart
-      ).padStart(2, "0")}`;
-
-      slots.push(`${start} - ${end}`);
-    }
+    slots.push(`${start} - ${end}`);
 
     const nextMinutes = slotStartMinutes + 25;
     currentHour = Math.floor(nextMinutes / 60);
@@ -184,6 +169,8 @@ export default function BookPage() {
   const [phone, setPhone] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [loadingBookedSlots, setLoadingBookedSlots] = useState(false);
 
   const calendarDays = useMemo(
     () => generateCalendarDays(currentMonth),
@@ -197,6 +184,37 @@ export default function BookPage() {
 
   const monthTitle = getMonthName(currentMonth);
 
+  useEffect(() => {
+    async function loadBookedSlots() {
+      if (!selectedDate) {
+        setBookedSlots([]);
+        return;
+      }
+
+      try {
+        setLoadingBookedSlots(true);
+
+        const date = formatDateKey(selectedDate);
+        const response = await fetch(`/api/booked-slots?date=${date}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          setBookedSlots(data.bookedSlots || []);
+        } else {
+          console.error(data);
+          setBookedSlots([]);
+        }
+      } catch (error) {
+        console.error(error);
+        setBookedSlots([]);
+      } finally {
+        setLoadingBookedSlots(false);
+      }
+    }
+
+    loadBookedSlots();
+  }, [selectedDate]);
+
   const handleContinue = async () => {
     if (!selectedDate || !selectedTime) {
       alert("لطفاً ابتدا روز و ساعت را انتخاب کنید");
@@ -205,6 +223,11 @@ export default function BookPage() {
 
     if (!fullName.trim() || !email.trim() || !phone.trim()) {
       alert("لطفاً معلومات خود را کامل وارد کنید");
+      return;
+    }
+
+    if (bookedSlots.includes(selectedTime)) {
+      alert("این ساعت قبلاً رزرو شده است. لطفاً زمان دیگری را انتخاب کنید.");
       return;
     }
 
@@ -227,6 +250,12 @@ export default function BookPage() {
       });
 
       const data = await response.json();
+
+      if (response.status === 409) {
+        alert("این ساعت قبلاً رزرو شده است. لطفاً زمان دیگری را انتخاب کنید.");
+        setSelectedTime("");
+        return;
+      }
 
       if (!response.ok) {
         console.error(data);
@@ -353,21 +382,36 @@ export default function BookPage() {
 
             <div className="grid max-h-[420px] gap-3 overflow-y-auto pr-1">
               {selectedDate ? (
-                timeSlots.length > 0 ? (
-                  timeSlots.map((time) => (
-                    <button
-                      key={time}
-                      type="button"
-                      onClick={() => setSelectedTime(time)}
-                      className={`rounded-2xl border px-4 py-3 text-right transition ${
-                        selectedTime === time
-                          ? "border-[#0051A2] bg-[#1B75BE] text-white"
-                          : "border-neutral-300 bg-white hover:border-[#1B75BE]"
-                      }`}
-                    >
-                      {time}
-                    </button>
-                  ))
+                loadingBookedSlots ? (
+                  <div className="rounded-2xl border border-dashed border-neutral-300 p-6 text-center text-neutral-500">
+                    در حال بارگذاری زمان‌های موجود...
+                  </div>
+                ) : timeSlots.length > 0 ? (
+                  timeSlots.map((time) => {
+                    const isBooked = bookedSlots.includes(time);
+
+                    return (
+                      <button
+                        key={time}
+                        type="button"
+                        onClick={() => {
+                          if (isBooked) return;
+                          setSelectedTime(time);
+                        }}
+                        disabled={isBooked}
+                        className={`rounded-2xl border px-4 py-3 text-right transition ${
+                          isBooked
+                            ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400"
+                            : selectedTime === time
+                            ? "border-[#0051A2] bg-[#1B75BE] text-white"
+                            : "border-neutral-300 bg-white hover:border-[#1B75BE]"
+                        }`}
+                      >
+                        {time}
+                        {isBooked ? " — رزرو شده" : ""}
+                      </button>
+                    );
+                  })
                 ) : (
                   <div className="rounded-2xl border border-dashed border-neutral-300 p-6 text-center text-neutral-500">
                     برای این روز زمان خالی موجود نیست
@@ -470,6 +514,7 @@ export default function BookPage() {
                 onClick={handleContinue}
                 disabled={
                   loading ||
+                  loadingBookedSlots ||
                   !selectedDate ||
                   !selectedTime ||
                   !fullName.trim() ||
@@ -478,6 +523,7 @@ export default function BookPage() {
                 }
                 className={`mt-6 w-full rounded-full px-6 py-3 text-white transition ${
                   loading ||
+                  loadingBookedSlots ||
                   !selectedDate ||
                   !selectedTime ||
                   !fullName.trim() ||

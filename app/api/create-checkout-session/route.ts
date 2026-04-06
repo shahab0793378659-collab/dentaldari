@@ -1,5 +1,7 @@
+// app/api/create-checkout-session/route.ts
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { isSlotBooked } from "@/lib/calendar";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -19,16 +21,22 @@ export async function POST(req: Request) {
       );
     }
 
+    const alreadyBooked = await isSlotBooked(String(date), String(time));
+
+    if (alreadyBooked) {
+      return NextResponse.json(
+        { error: "This time is already booked" },
+        { status: 409 }
+      );
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
-
       customer_email: email,
-
       payment_intent_data: {
         description: `Dentaldari consultation - ${fullName} - ${date} ${time}`,
       },
-
       metadata: {
         fullName,
         email,
@@ -38,7 +46,6 @@ export async function POST(req: Request) {
         time,
         type: "dentaldari_consultation",
       },
-
       line_items: [
         {
           price_data: {
@@ -51,7 +58,6 @@ export async function POST(req: Request) {
           quantity: 1,
         },
       ],
-
       success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}&fullName=${encodeURIComponent(
         fullName
       )}&email=${encodeURIComponent(email)}&date=${encodeURIComponent(
