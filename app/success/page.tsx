@@ -1,17 +1,19 @@
-export const dynamic = "force-dynamic";
+type SuccessPageProps = {
+  searchParams: Promise<{
+    fullName?: string;
+    email?: string;
+    time?: string;
+    date?: string;
+  }>;
+};
 
-"use client";
+export default async function SuccessPage({ searchParams }: SuccessPageProps) {
+  const params = await searchParams;
 
-import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-
-export default function SuccessPage() {
-  const searchParams = useSearchParams();
-
-  const fullName = searchParams.get("fullName") || "";
-  const email = searchParams.get("email") || "";
-  const time = searchParams.get("time") || "";
-  const rawDate = searchParams.get("date") || "";
+  const fullName = params.fullName || "";
+  const email = params.email || "";
+  const time = params.time || "";
+  const rawDate = params.date || "";
 
   let formattedDate = "";
   if (rawDate) {
@@ -25,23 +27,6 @@ export default function SuccessPage() {
       });
     }
   }
-
-  useEffect(() => {
-    if (email && fullName && time && formattedDate) {
-      fetch("/api/send-confirmation", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          fullName,
-          date: formattedDate,
-          time,
-        }),
-      });
-    }
-  }, [email, fullName, time, formattedDate]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f8f6f2] px-6 py-10">
