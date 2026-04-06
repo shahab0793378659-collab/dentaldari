@@ -1,16 +1,116 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { google } from "googleapis";
+import { v4 as uuidv4 } from "uuid";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+function formatDateTimeInStockholm(date: string, timeRange: string) {
+  const [startTime] = timeRange.split(" - ");
+  const [hours, minutes] = startTime.split(":").map(Number);
+
+  const start = new Date(`${date}T00:00:00`);
+  start.setHours(hours, minutes, 0, 0);
+
+  const end = new Date(start);
+  end.setMinutes(end.getMinutes() + 20);
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  };
+}
+
+async function createCalendarEvent({
+  fullName,
+  customerEmail,
+  date,
+  time,
+}: {
+  fullName: string;
+  customerEmail: string;
+  date: string;
+  time: string;
+}) {
+  const auth = new google.auth.JWT(
+    process.env.GOOGLE_CLIENT_EMAIL,
+    undefined,
+    process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    ["https://www.googleapis.com/auth/calendar"]
+  );
+
+  const calendar = google.calendar({ version: "v3", auth });
+
+  const { start, end } = formatDateTimeInStockholm(date, time);
+
+  const event = await calendar.events.insert({
+    calendarId: process.env.GOOGLE_CALENDAR_ID,
+    conferenceDataVersion: 1,
+    sendUpdates: "all",
+    requestBody: {
+      summary: `Dentaldari online consultation - ${fullName}`,
+      description:
+        `Online dental consultation via Google Meet.\n\n` +
+        `Name: ${fullName}\n` +
+        `Email: ${customerEmail}\n` +
+        `Date: ${date}\n` +
+        `Time: ${time}`,
+      start: {
+        dateTime: start,
+        timeZone: "Europe/Stockholm",
+      },
+      end: {
+        dateTime: end,
+        timeZone: "Europe/Stockholm",
+      },
+      attendees: [
+        { email: customerEmail },
+        { email: "dentaldari.com@gmail.com" },
+      ],
+      conferenceData: {
+        createRequest: {
+          requestId: uuidv4(),
+          conferenceSolutionKey: {
+            type: "hangoutsMeet",
+          },
+        },
+      },
+    },
+  });
+
+  const meetLink =
+    event.data.conferenceData?.entryPoints?.find(
+      (entry) => entry.entryPointType === "video"
+    )?.uri || "";
+
+  return {
+    meetLink,
+    googleEventLink: event.data.htmlLink || "",
+  };
+}
 
 export async function POST(req: Request) {
   try {
     const { email, fullName, date, time } = await req.json();
 
+    if (!email || !fullName || !date || !time) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const { meetLink, googleEventLink } = await createCalendarEvent({
+      fullName,
+      customerEmail: email,
+      date,
+      time,
+    });
+
     await resend.emails.send({
       from: "Dentaldari <onboarding@resend.dev>",
       to: [email, "dentaldari.com@gmail.com"],
-      subject: "Ny bokning - Dentaldari",
+      subject: "Bekräftelse på bokning - Dentaldari",
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.8;">
           <h2>Ny bokning hos Dentaldari</h2>
@@ -20,6 +120,12 @@ export async function POST(req: Request) {
           <p><strong>Datum:</strong> ${date}</p>
           <p><strong>Tid:</strong> ${time}</p>
 
+          <p><strong>Google Meet-länk:</strong><br />
+          <a href="${meetLink}">${meetLink}</a></p>
+
+          <p><strong>Lägg till i Google Kalender:</strong><br />
+          <a href="${googleEventLink}">Öppna kalenderbokningen</a></p>
+
           <hr style="margin: 24px 0;" />
 
           <h3>Bekräftelse till patient</h3>
@@ -27,7 +133,10 @@ export async function POST(req: Request) {
           <p>رزرو مشاوره آنلاین شما ثبت شد.</p>
           <p><strong>تاریخ:</strong> ${date}</p>
           <p><strong>ساعت:</strong> ${time}</p>
-          <p>لطفاً در زمان مشخص آماده باشید.</p>
+          <p><strong>لینک جلسه:</strong><br />
+          <a href="${meetLink}">${meetLink}</a></p>
+          <p><strong>اضافه کردن به گوگل کلندر:</strong><br />
+          <a href="${googleEventLink}">Open calendar event</a></p>
 
           <br />
           <p>Dentaldari</p>
@@ -35,9 +144,13 @@ export async function POST(req: Request) {
       `,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      meetLink,
+      googleEventLink,
+    });
   } catch (error) {
     console.error("Send confirmation error:", error);
-    return NextResponse.json({ error: "Email failed" }, { status: 500 });
+    return NextResponse.json({ error: "Email/calendar failed" }, { status: 500 });
   }
 }

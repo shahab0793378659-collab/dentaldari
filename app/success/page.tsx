@@ -84,7 +84,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
 
           <div className="space-y-3 text-sm leading-7 text-neutral-700 md:text-base">
             <p>• یک ایمیل تایید برای شما ارسال می‌شود.</p>
-            <p>• لینک جلسه آنلاین بعداً برای شما فرستاده خواهد شد.</p>
+            <p>• لینک جلسه آنلاین گوگل میت برای شما فرستاده خواهد شد.</p>
             <p>• لطفاً چند دقیقه قبل از وقت تعیین‌شده آماده باشید.</p>
             <p>• اگر سوالی داشتید، از طریق اینستاگرام پیام بدهید.</p>
           </div>
@@ -107,6 +107,17 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
             پیام در اینستاگرام
           </a>
         </div>
+
+        <form
+          action="/api/send-confirmation"
+          method="POST"
+          className="hidden"
+        >
+          <input type="hidden" name="email" value={email} />
+          <input type="hidden" name="fullName" value={fullName} />
+          <input type="hidden" name="date" value={rawDate} />
+          <input type="hidden" name="time" value={time} />
+        </form>
       </div>
     </main>
   );
