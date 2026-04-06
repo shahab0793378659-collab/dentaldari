@@ -16,7 +16,7 @@ export default function CancelPage() {
 
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
           <a
-            href="/#payment"
+            href="/#book"
             className="rounded-full bg-[var(--primary)] px-6 py-3 text-white transition hover:opacity-90"
           >
             تلاش دوباره
