@@ -18,10 +18,25 @@ function addMonths(date: Date, amount: number) {
 }
 
 function getMonthName(date: Date) {
-  return date.toLocaleDateString("fa-AF", {
-    month: "long",
-    year: "numeric",
-  });
+  const persianMonths = [
+    "جنوری",
+    "فبروری",
+    "مارچ",
+    "اپریل",
+    "می",
+    "جون",
+    "جولای",
+    "آگست",
+    "سپتمبر",
+    "اکتوبر",
+    "نومبر",
+    "دسمبر",
+  ];
+
+  const month = persianMonths[date.getMonth()];
+  const year = date.getFullYear();
+
+  return `${month} ${year}`;
 }
 
 function getWeekdayLabel(date: Date) {
@@ -65,7 +80,7 @@ function isPastDay(date: Date) {
     now.day
   ).padStart(2, "0")}`;
 
-  return formatDateKey(date) < todayKey;
+  return formatDateKey(date) <= todayKey;
 }
 
 function generateCalendarDays(currentMonth: Date) {
