@@ -4,7 +4,7 @@ import Stripe from "stripe";
 import { Resend } from "resend";
 import { google } from "googleapis";
 import { v4 as uuidv4 } from "uuid";
-import { isSlotBooked } from "@/lib/calendar";
+import { isSlotBooked } from "../../../lib/calendar";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 const resend = new Resend(process.env.RESEND_API_KEY);
