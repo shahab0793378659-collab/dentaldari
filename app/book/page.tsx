@@ -497,7 +497,7 @@ export default function BookPage() {
                   <span className="font-medium">نوع:</span> مشاوره آنلاین ۲۰ دقیقه
                 </p>
                 <p>
-                  <span className="font-medium">قیمت:</span> ۹۹ کرون
+                  <span className="font-medium">قیمت:</span> ۹۹ کرون ‎(حدود ۹.۹ دالر)
                 </p>
                 <p>
                   <span className="font-medium">نام:</span>{" "}

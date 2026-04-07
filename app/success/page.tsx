@@ -74,7 +74,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
               <span className="font-medium">مدت:</span> ۲۰ دقیقه
             </p>
             <p>
-              <span className="font-medium">مبلغ پرداختی:</span> (حدود ۹.۹ دالر)۹۹ کرون
+              <span className="font-medium">مبلغ پرداختی:</span> ۹۹ کرون ‎(حدود ۹.۹ دالر)
             </p>
           </div>
         </div>
