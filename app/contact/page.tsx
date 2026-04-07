@@ -26,7 +26,7 @@ export default function ContactPage() {
           </a>
 
           <a
-            href="https://instagram.com/shahabmohammadi.nu"
+            href="https://instagram.com/dentaldari"
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-full border border-white px-6 py-3 text-center transition hover:bg-white hover:text-black"

@@ -19,7 +19,7 @@ export default function SocialsPage() {
 
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           <a
-            href="https://www.instagram.com/shahabmohammadi.nu"
+            href="https://www.instagram.com/dentaldari"
             target="_blank"
             rel="noopener noreferrer"
             className="luxury-card group rounded-[28px] border border-neutral-200 bg-white p-8 transition duration-300 hover:-translate-y-1 hover:shadow-md"
@@ -48,7 +48,7 @@ export default function SocialsPage() {
           </a>
 
           <a
-            href="https://www.tiktok.com/@shahabmohammadi.nu"
+            href="https://www.tiktok.com/@dentaldari"
             target="_blank"
             rel="noopener noreferrer"
             className="luxury-card group rounded-[28px] border border-neutral-200 bg-white p-8 transition duration-300 hover:-translate-y-1 hover:shadow-md"
