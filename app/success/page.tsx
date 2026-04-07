@@ -74,7 +74,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
               <span className="font-medium">مدت:</span> ۲۰ دقیقه
             </p>
             <p>
-              <span className="font-medium">مبلغ پرداختی:</span> ۹۹ کرون
+              <span className="font-medium">مبلغ پرداختی:</span> (حدود ۹.۹ دالر)۹۹ کرون
             </p>
           </div>
         </div>
@@ -99,7 +99,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
           </a>
 
           <a
-            href="https://instagram.com/shahabmohammadi.nu"
+            href="https://instagram.com/dentaldari"
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-full border border-black px-6 py-3 transition hover:bg-[var(--primary)] hover:text-white"

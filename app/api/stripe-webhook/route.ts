@@ -51,7 +51,7 @@ async function createCalendarEvent({
     conferenceDataVersion: 1,
     sendUpdates: "all",
     requestBody: {
-      summary: `Dentaldari online consultation - ${fullName}`,
+      summary: `Dentaldari online consultation (≈ $9.9) - ${fullName}`,
       description:
         `Online dental consultation via Google Meet.\n\n` +
         `Name: ${fullName}\n` +

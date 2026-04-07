@@ -95,7 +95,7 @@ export default function Home() {
             مراقبت‌های خانگی، انتخاب درمان مناسب و راهنمایی پیش از مراجعه حضوری.
           </p>
 
-          <p className="mb-2 text-2xl font-semibold">۹۹ کرون</p>
+          <p className="mb-2 text-2xl font-semibold">(حدود ۹.۹ دالر)۹۹ کرون</p>
           <p className="mb-8 text-neutral-500">۲۰ دقیقه – آنلاین</p>
 
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
