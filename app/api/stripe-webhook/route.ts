@@ -50,9 +50,8 @@ async function createCalendarEvent({
     calendarId: process.env.GOOGLE_CALENDAR_ID,
     conferenceDataVersion: 1,
     requestBody: {
-      summary: `Dentaldari online consultation (≈ $9.9) - ${fullName}`,
+      summary: `Dentaldari consultation - ${fullName}`,
       description:
-        `Online dental consultation via Google Meet.\n\n` +
         `Name: ${fullName}\n` +
         `Email: ${customerEmail}\n` +
         `Date: ${date}\n` +
@@ -129,18 +128,18 @@ export async function POST(req: Request) {
 
       if (alreadyBooked) {
         await resend.emails.send({
-           from: "Dentaldari <onboarding@resend.dev>",
-  to: ["dentaldari.com@gmail.com"],
-          subject: "VIKTIGT: möjlig dubbelbokning efter betalning",
+          from: "Dentaldari <onboarding@resend.dev>",
+          to: ["dentaldari.com@gmail.com"],
+          subject: "رزرو تکراری احتمالی",
           html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.8;">
-              <h2>Manuell kontroll krävs</h2>
-              <p>En betalning kom in för en tid som redan verkar vara bokad.</p>
-              <p><strong>Namn:</strong> ${fullName}</p>
-              <p><strong>Email:</strong> ${email}</p>
-              <p><strong>Datum:</strong> ${date}</p>
-              <p><strong>Tid:</strong> ${time}</p>
-              <p>Kontrollera Stripe och kalendern direkt.</p>
+            <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.9; direction: rtl; text-align: right;">
+              <h2>نیاز به بررسی دستی</h2>
+              <p>یک پرداخت برای زمانی ثبت شده که احتمالاً قبلاً رزرو شده است.</p>
+              <p><strong>نام:</strong> ${fullName}</p>
+              <p><strong>ایمیل:</strong> ${email}</p>
+              <p><strong>تاریخ:</strong> ${date}</p>
+              <p><strong>ساعت:</strong> ${time}</p>
+              <p>لطفاً این رزرو را دستی بررسی کنید.</p>
             </div>
           `,
         });
@@ -148,12 +147,12 @@ export async function POST(req: Request) {
         await resend.emails.send({
           from: "Dentaldari <onboarding@resend.dev>",
           to: [email],
-          subject: "Din bokning granskas manuellt - Dentaldari",
+          subject: "رزرو شما در حال بررسی است",
           html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.8;">
-              <h2>Vi granskar din bokning manuellt</h2>
-              <p>Vi har mottagit din betalning och granskar just nu din bokning manuellt för att säkerställa rätt tid.</p>
-              <p>Du får snart ett uppföljande mejl från oss.</p>
+            <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.9; direction: rtl; text-align: right;">
+              <h2>رزرو شما در حال بررسی است</h2>
+              <p>پرداخت شما دریافت شد، اما برای اطمینان از درست بودن زمان رزرو، درخواست شما به‌صورت دستی بررسی می‌شود.</p>
+              <p>به‌زودی ایمیل بعدی برای شما ارسال خواهد شد.</p>
             </div>
           `,
         });
@@ -180,58 +179,61 @@ export async function POST(req: Request) {
         console.error("Calendar creation error:", calendarError);
       }
 
+      // Mail till dig
       await resend.emails.send({
-         from: "Dentaldari <onboarding@resend.dev>",
-  to: ["dentaldari.com@gmail.com"],
-        subject: calendarFailed
-          ? "Bokning mottagen - Dentaldari"
-          : "Bekräftelse på bokning - Dentaldari",
+        from: "Dentaldari <onboarding@resend.dev>",
+        to: ["dentaldari.com@gmail.com"],
+        subject: "رزرو جدید در Dentaldari",
         html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.8;">
-            <h2>Ny bokning hos Dentaldari</h2>
-
-            <p><strong>Namn:</strong> ${fullName}</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Datum:</strong> ${date}</p>
-            <p><strong>Tid:</strong> ${time}</p>
-
-            ${
-              calendarFailed
-                ? `
-              <p><strong>Obs:</strong> Bokningen är mottagen, men Google Meet-länken skapas manuellt och skickas separat inom kort.</p>
-            `
-                : `
-              <p><strong>Google Meet-länk:</strong><br />
-              <a href="${meetLink}">${meetLink}</a></p>
-
-              <p><strong>Lägg till i Google Kalender:</strong><br />
-              <a href="${googleEventLink}">Öppna kalenderbokningen</a></p>
-            `
-            }
-
-            <hr style="margin: 24px 0;" />
-
-            <h3>Bekräftelse till patient</h3>
-            <p>سلام ${fullName}</p>
-            <p>رزرو مشاوره آنلاین شما ثبت شد.</p>
+          <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.9; direction: rtl; text-align: right;">
+            <h2>رزرو جدید</h2>
+            <p><strong>نام:</strong> ${fullName}</p>
+            <p><strong>ایمیل:</strong> ${email}</p>
             <p><strong>تاریخ:</strong> ${date}</p>
             <p><strong>ساعت:</strong> ${time}</p>
 
             ${
               calendarFailed
-                ? `
-              <p>لینک جلسه آنلاین بعداً برای شما ارسال خواهد شد.</p>
-            `
+                ? `<p><strong>نکته:</strong> رزرو ثبت شده است، اما لینک Google Meet هنوز به‌صورت خودکار ساخته نشده و باید بررسی شود.</p>`
                 : `
-              <p><strong>لینک جلسه:</strong><br />
-              <a href="${meetLink}">${meetLink}</a></p>
+                  <p><strong>لینک جلسه:</strong><br />
+                  <a href="${meetLink}">${meetLink}</a></p>
 
-              <p><strong>اضافه کردن به گوگل کلندر:</strong><br />
-              <a href="${googleEventLink}">Open calendar event</a></p>
-            `
+                  <p><strong>لینک رویداد گوگل کلندر:</strong><br />
+                  <a href="${googleEventLink}">${googleEventLink}</a></p>
+                `
+            }
+          </div>
+        `,
+      });
+
+      // Mail till kund
+      await resend.emails.send({
+        from: "Dentaldari <onboarding@resend.dev>",
+        to: [email],
+        subject: calendarFailed
+          ? "رزرو شما ثبت شد"
+          : "تایید رزرو شما",
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.9; direction: rtl; text-align: right;">
+            <h2>رزرو شما ثبت شد</h2>
+            <p>سلام ${fullName}</p>
+            <p>رزرو مشاوره آنلاین شما با موفقیت ثبت شد.</p>
+            <p><strong>تاریخ:</strong> ${date}</p>
+            <p><strong>ساعت:</strong> ${time}</p>
+
+            ${
+              calendarFailed
+                ? `<p>لینک جلسه آنلاین به‌زودی برای شما ارسال خواهد شد.</p>`
+                : `
+                  <p><strong>لینک Google Meet:</strong><br />
+                  <a href="${meetLink}">${meetLink}</a></p>
+
+                  <p><strong>لینک رویداد گوگل کلندر:</strong><br />
+                  <a href="${googleEventLink}">${googleEventLink}</a></p>
+                `
             }
 
-            <br />
             <p>Dentaldari</p>
           </div>
         `,
