@@ -49,7 +49,6 @@ async function createCalendarEvent({
   const event = await calendar.events.insert({
     calendarId: process.env.GOOGLE_CALENDAR_ID,
     conferenceDataVersion: 1,
-    sendUpdates: "all",
     requestBody: {
       summary: `Dentaldari online consultation (≈ $9.9) - ${fullName}`,
       description:
@@ -66,10 +65,7 @@ async function createCalendarEvent({
         dateTime: end,
         timeZone: "Europe/Stockholm",
       },
-      attendees: [
-        { email: customerEmail },
-        { email: "dentaldari.com@gmail.com" },
-      ],
+     
       conferenceData: {
         createRequest: {
           requestId: uuidv4(),
