@@ -129,7 +129,7 @@ export async function POST(req: Request) {
 
       if (alreadyBooked) {
         await resend.emails.send({
-          from: "Dentaldari <onboarding@resend.dev>",
+          from: "Dentaldari <dentaldari.com@gmail.com>",
           to: ["dentaldari.com@gmail.com"],
           subject: "VIKTIGT: möjlig dubbelbokning efter betalning",
           html: `
@@ -181,7 +181,7 @@ export async function POST(req: Request) {
       }
 
       await resend.emails.send({
-        from: "Dentaldari <onboarding@resend.dev>",
+        from: "Dentaldari <dentaldari.com@gmail.com>",
         to: [email, "dentaldari.com@gmail.com"],
         subject: calendarFailed
           ? "Bokning mottagen - Dentaldari"
