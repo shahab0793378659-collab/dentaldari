@@ -65,7 +65,6 @@ async function createCalendarEvent({
         dateTime: end,
         timeZone: "Europe/Stockholm",
       },
-     
       conferenceData: {
         createRequest: {
           requestId: uuidv4(),
@@ -162,17 +161,31 @@ export async function POST(req: Request) {
         return NextResponse.json({ received: true });
       }
 
-      const { meetLink, googleEventLink } = await createCalendarEvent({
-        fullName,
-        customerEmail: email,
-        date,
-        time,
-      });
+      let meetLink = "";
+      let googleEventLink = "";
+      let calendarFailed = false;
+
+      try {
+        const calendarResult = await createCalendarEvent({
+          fullName,
+          customerEmail: email,
+          date,
+          time,
+        });
+
+        meetLink = calendarResult.meetLink;
+        googleEventLink = calendarResult.googleEventLink;
+      } catch (calendarError) {
+        calendarFailed = true;
+        console.error("Calendar creation error:", calendarError);
+      }
 
       await resend.emails.send({
         from: "Dentaldari <onboarding@resend.dev>",
         to: [email, "dentaldari.com@gmail.com"],
-        subject: "Bekräftelse på bokning - Dentaldari",
+        subject: calendarFailed
+          ? "Bokning mottagen - Dentaldari"
+          : "Bekräftelse på bokning - Dentaldari",
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.8;">
             <h2>Ny bokning hos Dentaldari</h2>
@@ -182,11 +195,19 @@ export async function POST(req: Request) {
             <p><strong>Datum:</strong> ${date}</p>
             <p><strong>Tid:</strong> ${time}</p>
 
-            <p><strong>Google Meet-länk:</strong><br />
-            <a href="${meetLink}">${meetLink}</a></p>
+            ${
+              calendarFailed
+                ? `
+              <p><strong>Obs:</strong> Bokningen är mottagen, men Google Meet-länken skapas manuellt och skickas separat inom kort.</p>
+            `
+                : `
+              <p><strong>Google Meet-länk:</strong><br />
+              <a href="${meetLink}">${meetLink}</a></p>
 
-            <p><strong>Lägg till i Google Kalender:</strong><br />
-            <a href="${googleEventLink}">Öppna kalenderbokningen</a></p>
+              <p><strong>Lägg till i Google Kalender:</strong><br />
+              <a href="${googleEventLink}">Öppna kalenderbokningen</a></p>
+            `
+            }
 
             <hr style="margin: 24px 0;" />
 
@@ -195,10 +216,20 @@ export async function POST(req: Request) {
             <p>رزرو مشاوره آنلاین شما ثبت شد.</p>
             <p><strong>تاریخ:</strong> ${date}</p>
             <p><strong>ساعت:</strong> ${time}</p>
-            <p><strong>لینک جلسه:</strong><br />
-            <a href="${meetLink}">${meetLink}</a></p>
-            <p><strong>اضافه کردن به گوگل کلندر:</strong><br />
-            <a href="${googleEventLink}">Open calendar event</a></p>
+
+            ${
+              calendarFailed
+                ? `
+              <p>لینک جلسه آنلاین بعداً برای شما ارسال خواهد شد.</p>
+            `
+                : `
+              <p><strong>لینک جلسه:</strong><br />
+              <a href="${meetLink}">${meetLink}</a></p>
+
+              <p><strong>اضافه کردن به گوگل کلندر:</strong><br />
+              <a href="${googleEventLink}">Open calendar event</a></p>
+            `
+            }
 
             <br />
             <p>Dentaldari</p>
