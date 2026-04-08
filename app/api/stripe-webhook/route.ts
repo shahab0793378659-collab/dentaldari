@@ -50,8 +50,9 @@ async function createCalendarEvent({
     calendarId: process.env.GOOGLE_CALENDAR_ID,
     conferenceDataVersion: 1,
     requestBody: {
-      summary: `Dentaldari consultation - ${fullName}`,
+      summary: `Dentaldari - ${fullName}`,
       description:
+        `Dentaldari booking\n\n` +
         `Name: ${fullName}\n` +
         `Email: ${customerEmail}\n` +
         `Date: ${date}\n` +
@@ -86,6 +87,93 @@ async function createCalendarEvent({
   };
 }
 
+function adminEmailHtml({
+  fullName,
+  email,
+  date,
+  time,
+  meetLink,
+  googleEventLink,
+  calendarFailed,
+}: {
+  fullName: string;
+  email: string;
+  date: string;
+  time: string;
+  meetLink: string;
+  googleEventLink: string;
+  calendarFailed: boolean;
+}) {
+  return `
+    <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.9; direction: rtl; text-align: right;">
+      <h2>رزرو جدید</h2>
+
+      <p><strong>نام:</strong> ${fullName}</p>
+      <p><strong>ایمیل:</strong> ${email}</p>
+      <p><strong>تاریخ:</strong> ${date}</p>
+      <p><strong>ساعت:</strong> ${time}</p>
+
+      ${
+        calendarFailed
+          ? `
+            <p><strong>نکته:</strong> رزرو ثبت شد، اما لینک جلسه آنلاین به‌صورت خودکار ساخته نشد. لطفاً این مورد را دستی بررسی کنید.</p>
+          `
+          : `
+            <p><strong>لینک Google Meet:</strong><br />
+            <a href="${meetLink}">${meetLink}</a></p>
+
+            <p><strong>لینک رویداد در گوگل کلندر:</strong><br />
+            <a href="${googleEventLink}">${googleEventLink}</a></p>
+          `
+      }
+    </div>
+  `;
+}
+
+function customerEmailHtml({
+  fullName,
+  date,
+  time,
+  meetLink,
+  googleEventLink,
+  calendarFailed,
+}: {
+  fullName: string;
+  date: string;
+  time: string;
+  meetLink: string;
+  googleEventLink: string;
+  calendarFailed: boolean;
+}) {
+  return `
+    <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.9; direction: rtl; text-align: right;">
+      <h2>رزرو شما ثبت شد</h2>
+
+      <p>سلام ${fullName}</p>
+      <p>رزرو مشاوره آنلاین شما با موفقیت ثبت شد.</p>
+
+      <p><strong>تاریخ:</strong> ${date}</p>
+      <p><strong>ساعت:</strong> ${time}</p>
+
+      ${
+        calendarFailed
+          ? `
+            <p>لینک جلسه آنلاین به‌زودی برای شما ارسال خواهد شد.</p>
+          `
+          : `
+            <p><strong>لینک Google Meet:</strong><br />
+            <a href="${meetLink}">${meetLink}</a></p>
+
+            <p><strong>لینک رویداد در گوگل کلندر:</strong><br />
+            <a href="${googleEventLink}">${googleEventLink}</a></p>
+          `
+      }
+
+      <p>Dentaldari</p>
+    </div>
+  `;
+}
+
 export async function POST(req: Request) {
   const body = await req.text();
   const signature = req.headers.get("stripe-signature");
@@ -97,10 +185,10 @@ export async function POST(req: Request) {
     );
   }
 
-  let event: Stripe.Event;
+  let stripeEvent: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
+    stripeEvent = stripe.webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET as string
@@ -111,13 +199,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
+    if (stripeEvent.type === "checkout.session.completed") {
+      const session = stripeEvent.data.object as Stripe.Checkout.Session;
 
-      const fullName = session.metadata?.fullName || "";
-      const email = session.metadata?.email || session.customer_email || "";
-      const date = session.metadata?.date || "";
-      const time = session.metadata?.time || "";
+      const fullName = String(session.metadata?.fullName || "").trim();
+      const email = String(
+        session.metadata?.email || session.customer_email || ""
+      ).trim();
+      const date = String(session.metadata?.date || "").trim();
+      const time = String(session.metadata?.time || "").trim();
 
       if (!fullName || !email || !date || !time) {
         console.error("Missing metadata in Stripe session");
@@ -127,27 +217,29 @@ export async function POST(req: Request) {
       const alreadyBooked = await isSlotBooked(date, time);
 
       if (alreadyBooked) {
-        await resend.emails.send({
+        const adminDuplicate = await resend.emails.send({
           from: "Dentaldari <onboarding@resend.dev>",
           to: ["dentaldari.com@gmail.com"],
-          subject: "رزرو تکراری احتمالی",
+          subject: "dentaldari",
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.9; direction: rtl; text-align: right;">
-              <h2>نیاز به بررسی دستی</h2>
+              <h2>رزرو تکراری احتمالی</h2>
               <p>یک پرداخت برای زمانی ثبت شده که احتمالاً قبلاً رزرو شده است.</p>
               <p><strong>نام:</strong> ${fullName}</p>
               <p><strong>ایمیل:</strong> ${email}</p>
               <p><strong>تاریخ:</strong> ${date}</p>
               <p><strong>ساعت:</strong> ${time}</p>
-              <p>لطفاً این رزرو را دستی بررسی کنید.</p>
+              <p>لطفاً این مورد را دستی بررسی کنید.</p>
             </div>
           `,
         });
 
-        await resend.emails.send({
+        console.log("Duplicate admin email result:", adminDuplicate);
+
+        const customerDuplicate = await resend.emails.send({
           from: "Dentaldari <onboarding@resend.dev>",
           to: [email],
-          subject: "رزرو شما در حال بررسی است",
+          subject: "dentaldari",
           html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.9; direction: rtl; text-align: right;">
               <h2>رزرو شما در حال بررسی است</h2>
@@ -156,6 +248,8 @@ export async function POST(req: Request) {
             </div>
           `,
         });
+
+        console.log("Duplicate customer email result:", customerDuplicate);
 
         return NextResponse.json({ received: true });
       }
@@ -174,70 +268,48 @@ export async function POST(req: Request) {
 
         meetLink = calendarResult.meetLink;
         googleEventLink = calendarResult.googleEventLink;
+
+        console.log("Calendar event created:", {
+          meetLink,
+          googleEventLink,
+        });
       } catch (calendarError) {
         calendarFailed = true;
         console.error("Calendar creation error:", calendarError);
       }
 
-      // Mail till dig
-      await resend.emails.send({
+      const adminResult = await resend.emails.send({
         from: "Dentaldari <onboarding@resend.dev>",
         to: ["dentaldari.com@gmail.com"],
-        subject: "رزرو جدید در Dentaldari",
-        html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.9; direction: rtl; text-align: right;">
-            <h2>رزرو جدید</h2>
-            <p><strong>نام:</strong> ${fullName}</p>
-            <p><strong>ایمیل:</strong> ${email}</p>
-            <p><strong>تاریخ:</strong> ${date}</p>
-            <p><strong>ساعت:</strong> ${time}</p>
-
-            ${
-              calendarFailed
-                ? `<p><strong>نکته:</strong> رزرو ثبت شده است، اما لینک Google Meet هنوز به‌صورت خودکار ساخته نشده و باید بررسی شود.</p>`
-                : `
-                  <p><strong>لینک جلسه:</strong><br />
-                  <a href="${meetLink}">${meetLink}</a></p>
-
-                  <p><strong>لینک رویداد گوگل کلندر:</strong><br />
-                  <a href="${googleEventLink}">${googleEventLink}</a></p>
-                `
-            }
-          </div>
-        `,
+        subject: "dentaldari",
+        html: adminEmailHtml({
+          fullName,
+          email,
+          date,
+          time,
+          meetLink,
+          googleEventLink,
+          calendarFailed,
+        }),
       });
 
-      // Mail till kund
-      await resend.emails.send({
+      console.log("Admin email result:", adminResult);
+
+      const customerResult = await resend.emails.send({
         from: "Dentaldari <onboarding@resend.dev>",
         to: [email],
-        subject: calendarFailed
-          ? "رزرو شما ثبت شد"
-          : "تایید رزرو شما",
-        html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.9; direction: rtl; text-align: right;">
-            <h2>رزرو شما ثبت شد</h2>
-            <p>سلام ${fullName}</p>
-            <p>رزرو مشاوره آنلاین شما با موفقیت ثبت شد.</p>
-            <p><strong>تاریخ:</strong> ${date}</p>
-            <p><strong>ساعت:</strong> ${time}</p>
-
-            ${
-              calendarFailed
-                ? `<p>لینک جلسه آنلاین به‌زودی برای شما ارسال خواهد شد.</p>`
-                : `
-                  <p><strong>لینک Google Meet:</strong><br />
-                  <a href="${meetLink}">${meetLink}</a></p>
-
-                  <p><strong>لینک رویداد گوگل کلندر:</strong><br />
-                  <a href="${googleEventLink}">${googleEventLink}</a></p>
-                `
-            }
-
-            <p>Dentaldari</p>
-          </div>
-        `,
+        subject: "dentaldari",
+        html: customerEmailHtml({
+          fullName,
+          date,
+          time,
+          meetLink,
+          googleEventLink,
+          calendarFailed,
+        }),
       });
+
+      console.log("Customer email result:", customerResult);
     }
 
     return NextResponse.json({ received: true });
