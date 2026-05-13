@@ -49,7 +49,7 @@ export default function Footer() {
               </p>
 
               <a
-                href="https://www.instagram.com/shahabmohammadi.nu"
+                href="https://www.instagram.com/dentaldari"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 transition hover:text-[#0051A2]"
@@ -68,11 +68,11 @@ export default function Footer() {
                     <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
                   </svg>
                 </span>
-                <span>Instagram: @shahabmohammadi.nu</span>
+                <span>Instagram: @dentaldari</span>
               </a>
 
               <a
-                href="https://www.tiktok.com/@shahabmohammadi.nu"
+                href="https://www.tiktok.com/@dentaldari"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 transition hover:text-[#0051A2]"
@@ -87,7 +87,7 @@ export default function Footer() {
                     <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.187h-3.161l-.005 12.907a2.571 2.571 0 1 1-1.814-2.454V9.693a5.755 5.755 0 1 0 5.756 5.712V8.749a8.154 8.154 0 0 0 4.995 1.714V7.275a4.83 4.83 0 0 1-2.001-.589z" />
                   </svg>
                 </span>
-                <span>TikTok: @shahabmohammadi.nu</span>
+                <span>TikTok: @dentaldari</span>
               </a>
             </div>
           </div>
