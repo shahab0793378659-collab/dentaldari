@@ -352,17 +352,23 @@ export default function BookPage() {
                     }}
                     className={`min-h-[84px] rounded-2xl border p-3 text-right transition ${
                       isPast
-                        ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400"
+                        ? "relative cursor-not-allowed border-neutral-200 bg-neutral-200 text-neutral-400 opacity-40"
                         : isSelected
                         ? "border-[#0051A2] bg-[#1B75BE] text-white"
                         : "border-neutral-200 bg-[#fcfbf8] hover:border-[#1B75BE]"
                     }`}
                   >
                     <div className="flex h-full items-center justify-center">
-                      <span className="text-lg font-semibold">
-                        {getDayNumber(day)}
-                      </span>
-                    </div>
+  <span className="text-lg font-semibold">
+    {getDayNumber(day)}
+  </span>
+
+  {isPast && (
+    <span className="absolute text-3xl font-light text-neutral-500">
+      ×
+    </span>
+  )}
+</div>
                   </button>
                 );
               })}
